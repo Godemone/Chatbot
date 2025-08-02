@@ -79,5 +79,29 @@ def learn():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/teach', methods=['POST'])
+def teach():
+    """Yeni yanıt öğretme endpoint'i"""
+    try:
+        data = request.get_json()
+        trigger = data.get('trigger', '')
+        response = data.get('response', '')
+        
+        if not trigger or not response:
+            return jsonify({'error': 'Trigger ve response gerekli'}), 400
+        
+        chatbot.teach_new_response(trigger, response)
+        return jsonify({'message': f'"{trigger}" için yeni yanıt öğretildi'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/custom_responses')
+def get_custom_responses():
+    """Özel öğrenilen yanıtları döndür"""
+    try:
+        return jsonify(chatbot.custom_responses)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 

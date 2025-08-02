@@ -163,6 +163,140 @@
             transform: none;
         }
 
+        .teach-button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .teach-button:hover {
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            border-color: #667eea;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-textarea:focus {
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
         .stats-panel {
             background: white;
             border-radius: 10px;
@@ -296,6 +430,9 @@
                 <button id="sendButton" class="send-button" onclick="sendMessage()">
                     Gönder
                 </button>
+                <button id="teachButton" class="teach-button" onclick="showTeachModal()" title="Bot'a yeni şeyler öğret">
+                    📚
+                </button>
             </div>
         </div>
     </div>
@@ -303,6 +440,32 @@
     <div class="stats-panel" id="statsPanel" style="display: none;">
         <div class="stats-title">📊 Konuşma İstatistikleri</div>
         <div class="stats-grid" id="statsGrid">
+        </div>
+    </div>
+
+    <!-- Öğretme Modal'ı -->
+    <div id="teachModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📚 Bot'a Yeni Şeyler Öğret</div>
+                <span class="close" onclick="closeTeachModal()">&times;</span>
+            </div>
+            <form id="teachForm">
+                <div class="form-group">
+                    <label class="form-label">Tetikleyici Kelime/Cümle:</label>
+                    <input type="text" id="triggerInput" class="form-input" 
+                           placeholder="Örnek: 'nasılsın', 'hava nasıl', 'fıkra anlat'" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bot'un Yanıtı:</label>
+                    <textarea id="responseInput" class="form-textarea" 
+                              placeholder="Bot'un vereceği yanıtı yazın..." required></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeTeachModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary">Öğret</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -431,6 +594,63 @@
         // Sayfa yüklendiğinde input'a odaklan
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('messageInput').focus();
+        });
+
+        // Modal fonksiyonları
+        function showTeachModal() {
+            document.getElementById('teachModal').style.display = 'block';
+            document.getElementById('triggerInput').focus();
+        }
+
+        function closeTeachModal() {
+            document.getElementById('teachModal').style.display = 'none';
+            document.getElementById('teachForm').reset();
+        }
+
+        // Modal dışına tıklandığında kapat
+        window.onclick = function(event) {
+            const modal = document.getElementById('teachModal');
+            if (event.target === modal) {
+                closeTeachModal();
+            }
+        }
+
+        // Öğretme formu gönderimi
+        document.getElementById('teachForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const trigger = document.getElementById('triggerInput').value.trim();
+            const response = document.getElementById('responseInput').value.trim();
+            
+            if (!trigger || !response) {
+                alert('Lütfen tüm alanları doldurun!');
+                return;
+            }
+            
+            try {
+                const result = await fetch('/teach', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        trigger: trigger, 
+                        response: response 
+                    })
+                });
+                
+                const data = await result.json();
+                
+                if (result.ok) {
+                    addMessage(`✅ "${trigger}" için yeni yanıt öğretildi! Artık bu kelimeyi kullandığınızda bot yeni yanıtı verecek.`, false);
+                    closeTeachModal();
+                } else {
+                    alert(`Hata: ${data.error}`);
+                }
+                
+            } catch (error) {
+                alert('Öğretme sırasında hata oluştu. Lütfen tekrar deneyin.');
+            }
         });
     </script>
 </body>

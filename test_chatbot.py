@@ -6,203 +6,210 @@ Chatbot Test Script
 Bu dosya chatbot'unuzu kapsamlı bir şekilde test etmenizi sağlar.
 """
 
+import unittest
 from chatbot import SmartChatbot
-import time
+from datetime import datetime
 
-def test_chatbot_interactive():
-    """İnteraktif chatbot testi"""
-    print("🤖 Chatbot İnteraktif Test Modu")
-    print("=" * 50)
-    print("Çıkmak için 'çıkış' yazın")
-    print("Test komutları:")
-    print("- 'test' : Otomatik test başlatır")
-    print("- 'stats' : İstatistikleri gösterir")
-    print("- 'save' : Bilgi tabanını kaydeder")
-    print("- 'load' : Bilgi tabanını yükler")
-    print("=" * 50)
+class TestSmartChatbot(unittest.TestCase):
+    
+    def setUp(self):
+        """Her test öncesi yeni chatbot oluştur"""
+        self.chatbot = SmartChatbot()
+    
+    def test_greetings(self):
+        """Selamlaşma testleri"""
+        responses = []
+        greetings = ["merhaba", "selam", "hey", "hi", "hello"]
+        
+        for greeting in greetings:
+            response = self.chatbot.chat(greeting)
+            responses.append(response)
+            self.assertIsNotNone(response)
+            self.assertGreater(len(response), 0)
+        
+        # En az bir farklı yanıt olmalı
+        self.assertGreater(len(set(responses)), 1)
+    
+    def test_farewells(self):
+        """Vedalaşma testleri"""
+        response = self.chatbot.chat("güle güle")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_thanks(self):
+        """Teşekkür testleri"""
+        response = self.chatbot.chat("teşekkürler")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_time(self):
+        """Saat testi"""
+        response = self.chatbot.chat("saat kaç")
+        self.assertIsNotNone(response)
+        self.assertIn(":", response)  # Saat formatı içermeli
+    
+    def test_math_operations(self):
+        """Matematik işlemleri testleri"""
+        # Toplama
+        response = self.chatbot.chat("5 ve 3 topla")
+        self.assertIn("5 + 3 = 8", response)
+        
+        # Çıkarma
+        response = self.chatbot.chat("10 çıkar 4")
+        self.assertIn("10 - 4 = 6", response)
+        
+        # Çarpma
+        response = self.chatbot.chat("6 çarp 7")
+        self.assertIn("6 × 7 = 42", response)
+        
+        # Bölme
+        response = self.chatbot.chat("15 böl 3")
+        self.assertIn("15 ÷ 3 = 5.0", response)
+    
+    def test_jokes(self):
+        """Fıkra testleri"""
+        response = self.chatbot.chat("fıkra anlat")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_facts(self):
+        """İlginç bilgi testleri"""
+        response = self.chatbot.chat("ilginç bilgi ver")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_help(self):
+        """Yardım testi"""
+        response = self.chatbot.chat("yardım")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_teaching(self):
+        """Öğretme testi"""
+        # Yeni yanıt öğret
+        self.chatbot.teach_new_response("test", "Bu bir test yanıtıdır!")
+        
+        # Öğretilen yanıtı test et
+        response = self.chatbot.chat("test")
+        self.assertEqual(response, "Bu bir test yanıtıdır!")
+    
+    def test_custom_responses(self):
+        """Özel yanıtlar testi"""
+        # Özel yanıt ekle
+        self.chatbot.custom_responses["özel"] = "Bu özel bir yanıttır!"
+        
+        # Test et
+        response = self.chatbot.chat("özel")
+        self.assertEqual(response, "Bu özel bir yanıttır!")
+    
+    def test_conversation_history(self):
+        """Konuşma geçmişi testi"""
+        self.chatbot.chat("merhaba")
+        self.chatbot.chat("nasılsın")
+        
+        history = self.chatbot.conversation_history
+        self.assertEqual(len(history), 2)
+        self.assertIn('user', history[0])
+        self.assertIn('bot', history[0])
+        self.assertIn('timestamp', history[0])
+    
+    def test_learning_history(self):
+        """Öğrenme geçmişi testi"""
+        self.chatbot.learn_from_conversation("test input", "test feedback")
+        
+        learning_history = self.chatbot.learning_history
+        self.assertEqual(len(learning_history), 1)
+        self.assertEqual(learning_history[0]['input'], "test input")
+        self.assertEqual(learning_history[0]['feedback'], "test feedback")
+    
+    def test_stats(self):
+        """İstatistik testi"""
+        self.chatbot.chat("merhaba")
+        self.chatbot.chat("güle güle")
+        
+        stats = self.chatbot.get_conversation_stats()
+        self.assertEqual(stats['total_messages'], 2)
+        self.assertIn('greetings', stats['intents'])
+        self.assertIn('farewells', stats['intents'])
+    
+    def test_save_load_knowledge(self):
+        """Kaydetme ve yükleme testi"""
+        # Özel yanıt ekle
+        self.chatbot.teach_new_response("test_save", "Test yanıtı")
+        
+        # Kaydet
+        self.chatbot.save_knowledge("test_knowledge.json")
+        
+        # Yeni chatbot oluştur ve yükle
+        new_chatbot = SmartChatbot()
+        new_chatbot.load_knowledge("test_knowledge.json")
+        
+        # Test et
+        response = new_chatbot.chat("test_save")
+        self.assertEqual(response, "Test yanıtı")
+        
+        # Test dosyasını temizle
+        import os
+        if os.path.exists("test_knowledge.json"):
+            os.remove("test_knowledge.json")
+    
+    def test_unknown_intent(self):
+        """Bilinmeyen niyet testi"""
+        response = self.chatbot.chat("xyzabc123")
+        self.assertIsNotNone(response)
+        self.assertGreater(len(response), 0)
+    
+    def test_text_preprocessing(self):
+        """Metin ön işleme testi"""
+        processed = self.chatbot.preprocess_text("Merhaba Dünya!")
+        self.assertIsInstance(processed, str)
+        self.assertGreater(len(processed), 0)
+
+def run_interactive_test():
+    """İnteraktif test fonksiyonu"""
+    print("🤖 Chatbot İnteraktif Test Başlıyor...\n")
     
     chatbot = SmartChatbot()
     
-    while True:
-        try:
-            user_input = input("\n👤 Siz: ").strip()
-            
-            if user_input.lower() in ['çıkış', 'exit', 'quit']:
-                print("👋 Görüşürüz!")
-                break
-                
-            elif user_input.lower() == 'test':
-                run_automated_tests(chatbot)
-                continue
-                
-            elif user_input.lower() == 'stats':
-                show_stats(chatbot)
-                continue
-                
-            elif user_input.lower() == 'save':
-                chatbot.save_knowledge()
-                print("✅ Bilgi tabanı kaydedildi!")
-                continue
-                
-            elif user_input.lower() == 'load':
-                chatbot.load_knowledge()
-                print("✅ Bilgi tabanı yüklendi!")
-                continue
-            
-            if user_input:
-                response = chatbot.chat(user_input)
-                print(f"🤖 Bot: {response}")
-                
-        except KeyboardInterrupt:
-            print("\n👋 Görüşürüz!")
-            break
-        except Exception as e:
-            print(f"❌ Hata: {e}")
-
-def run_automated_tests(chatbot):
-    """Otomatik testler"""
-    print("\n🧪 Otomatik Testler Başlıyor...")
-    print("-" * 40)
-    
+    # Örnek kullanım
     test_cases = [
-        # Selamlaşma testleri
-        ("Merhaba!", "greetings"),
-        ("Selam!", "greetings"),
-        ("Günaydın!", "greetings"),
-        ("Hi!", "greetings"),
-        
-        # Vedalaşma testleri
-        ("Güle güle!", "farewells"),
-        ("Hoşça kal!", "farewells"),
-        ("Görüşürüz!", "farewells"),
-        ("Bye!", "farewells"),
-        
-        # Teşekkür testleri
-        ("Teşekkürler!", "thanks"),
-        ("Teşekkür ederim!", "thanks"),
-        ("Sağol!", "thanks"),
-        ("Thanks!", "thanks"),
-        
-        # Saat testleri
-        ("Saat kaç?", "time"),
-        ("Zaman nedir?", "time"),
-        ("Kaç saat?", "time"),
-        
-        # Hava durumu testleri
-        ("Hava nasıl?", "weather"),
-        ("Hava durumu?", "weather"),
-        ("Yağmur yağacak mı?", "weather"),
-        
-        # Matematik testleri
-        ("Hesapla 2+2", "math"),
-        ("Topla 5 ve 3", "math"),
-        ("Matematik işlemi", "math"),
-        
-        # Bilinmeyen testler
-        ("Python nedir?", "unknown"),
-        ("Futbol oynuyorum", "unknown"),
-        ("Müzik dinliyorum", "unknown"),
+        ("Merhaba!", "Selamlaşma"),
+        ("Fıkra anlat", "Fıkra"),
+        ("İlginç bilgi ver", "İlginç bilgi"),
+        ("5 ve 3 topla", "Matematik"),
+        ("Saat kaç?", "Saat"),
+        ("Yardım", "Yardım"),
+        ("Güle güle", "Vedalaşma")
     ]
     
-    passed = 0
-    total = len(test_cases)
+    for user_input, description in test_cases:
+        print(f"🧪 Test: {description}")
+        print(f"👤 Kullanıcı: {user_input}")
+        response = chatbot.chat(user_input)
+        print(f"🤖 Bot: {response}")
+        print("-" * 50)
     
-    for i, (input_text, expected_intent) in enumerate(test_cases, 1):
-        print(f"\nTest {i}/{total}: '{input_text}'")
-        
-        # Chatbot'dan yanıt al
-        response = chatbot.chat(input_text)
-        
-        # Niyeti kontrol et
-        actual_intent = chatbot.classify_intent(input_text)
-        
-        if actual_intent == expected_intent:
-            print(f"✅ PASS - Niyet: {actual_intent}")
-            print(f"   Yanıt: {response}")
-            passed += 1
-        else:
-            print(f"❌ FAIL - Beklenen: {expected_intent}, Gerçek: {actual_intent}")
-            print(f"   Yanıt: {response}")
+    # Öğretme testi
+    print("📚 Öğretme Testi:")
+    chatbot.teach_new_response("python", "Python harika bir programlama dilidir!")
+    response = chatbot.chat("python")
+    print(f"👤 Kullanıcı: python")
+    print(f"🤖 Bot: {response}")
+    print("-" * 50)
     
-    print(f"\n📊 Test Sonuçları: {passed}/{total} başarılı ({passed/total*100:.1f}%)")
-
-def show_stats(chatbot):
-    """İstatistikleri göster"""
+    # İstatistikler
     stats = chatbot.get_conversation_stats()
-    
-    print("\n📊 Chatbot İstatistikleri")
-    print("-" * 30)
-    print(f"Toplam Mesaj: {stats['total_messages']}")
-    print(f"Öğrenme Kaydı: {stats['learning_entries']}")
-    
-    if stats['intents']:
-        print("\nNiyet Dağılımı:")
-        for intent, count in stats['intents'].items():
-            print(f"  {intent}: {count}")
+    print("📊 Test İstatistikleri:")
+    print(f"Toplam mesaj: {stats['total_messages']}")
+    print(f"Öğrenme kayıtları: {stats['learning_entries']}")
+    print(f"Niyet dağılımı: {stats['intents']}")
 
-def test_specific_features():
-    """Belirli özellikleri test et"""
-    print("\n🔧 Özel Özellik Testleri")
-    print("-" * 30)
+if __name__ == '__main__':
+    # Unit testleri çalıştır
+    print("🧪 Unit Testler Başlıyor...")
+    unittest.main(verbosity=2, exit=False)
     
-    chatbot = SmartChatbot()
+    print("\n" + "="*60 + "\n")
     
-    # Öğrenme testi
-    print("1. Öğrenme Testi:")
-    chatbot.learn_from_conversation("Python nedir?", "Python bir programlama dilidir")
-    print("   ✅ Öğrenme kaydı eklendi")
-    
-    # Bilgi kaydetme testi
-    print("2. Bilgi Kaydetme Testi:")
-    chatbot.save_knowledge()
-    print("   ✅ Bilgi tabanı kaydedildi")
-    
-    # Bilgi yükleme testi
-    print("3. Bilgi Yükleme Testi:")
-    chatbot.load_knowledge()
-    print("   ✅ Bilgi tabanı yüklendi")
-    
-    print("\n✅ Tüm özel testler tamamlandı!")
-
-def main():
-    """Ana test fonksiyonu"""
-    print("🤖 Chatbot Test Merkezi")
-    print("=" * 50)
-    print("1. İnteraktif Test")
-    print("2. Otomatik Test")
-    print("3. Özel Özellik Testi")
-    print("4. Web Arayüzü Testi")
-    print("5. Çıkış")
-    
-    while True:
-        try:
-            choice = input("\nSeçiminiz (1-5): ").strip()
-            
-            if choice == "1":
-                test_chatbot_interactive()
-                break
-            elif choice == "2":
-                chatbot = SmartChatbot()
-                run_automated_tests(chatbot)
-                break
-            elif choice == "3":
-                test_specific_features()
-                break
-            elif choice == "4":
-                print("\n🌐 Web arayüzünü test etmek için:")
-                print("1. Terminal'de 'python app.py' komutunu çalıştırın")
-                print("2. Tarayıcınızda http://localhost:5000 adresine gidin")
-                print("3. Chatbot ile konuşmaya başlayın!")
-                break
-            elif choice == "5":
-                print("👋 Görüşürüz!")
-                break
-            else:
-                print("❌ Geçersiz seçim. Lütfen 1-5 arası bir sayı girin.")
-                
-        except KeyboardInterrupt:
-            print("\n👋 Görüşürüz!")
-            break
-
-if __name__ == "__main__":
-    main() 
+    # İnteraktif test çalıştır
+    run_interactive_test() 

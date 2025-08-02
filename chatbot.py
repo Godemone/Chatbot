@@ -56,6 +56,24 @@ class SmartChatbot:
                 "Üzgünüm, bu konuda size yardımcı olamıyorum. Başka bir şey sorabilir misiniz?",
                 "Bu konu hakkında bilgim yok, ama sürekli öğreniyorum!",
                 "Henüz bu konuda eğitilmedim. Başka nasıl yardımcı olabilirim?"
+            ],
+            # Yeni kategoriler
+            "jokes": [
+                "Programcı neden karanlıkta çalışır? Çünkü ışık bug'ları çeker! 😄",
+                "İki programcı markete gider. Birisi 'Süt al' der, diğeri 'Süt yoksa yoğurt al' der! 😂",
+                "Neden bilgisayarlar soğuktan korkar? Çünkü Windows'ları kapatırlar! 🪟",
+                "Bir programcı karısına 'Marketten ekmek al' der. Karısı 'Ekmek yoksa ne alayım?' der. Programcı 'Hiçbir şey alma' der! 🥖"
+            ],
+            "facts": [
+                "İlk bilgisayar programcısı Ada Lovelace'tı ve 1843'te ilk algoritma yazdı!",
+                "Python programlama dili adını Monty Python komedi grubundan almıştır!",
+                "İnternet'in %60'ı kedi videolarından oluşur (şaka değil!) 😸",
+                "Bir bilgisayar saniyede 1 milyar işlem yapabilir!"
+            ],
+            "help": [
+                "Size nasıl yardımcı olabilirim? Şunları yapabilirim:\n- Selamlaşma\n- Fıkra anlatma\n- İlginç bilgiler\n- Saat söyleme\n- Matematik işlemleri",
+                "Yardım için şunları deneyebilirsiniz:\n- 'Fıkra anlat'\n- 'İlginç bilgi ver'\n- 'Saat kaç?'\n- 'Hesapla 2+2'",
+                "Komutlarım:\n- Selamlaşma\n- Fıkra\n- Bilgi\n- Saat\n- Hesaplama"
             ]
         }
         
@@ -68,6 +86,17 @@ class SmartChatbot:
         # Konuşma geçmişi
         self.conversation_history = []
         
+        # Yeni öğrenilen bilgiler
+        self.custom_responses = {}
+        
+        # Matematik işlemleri için hazırlık
+        self.math_operations = {
+            'topla': lambda x, y: x + y,
+            'çıkar': lambda x, y: x - y,
+            'çarp': lambda x, y: x * y,
+            'böl': lambda x, y: x / y if y != 0 else "Sıfıra bölme hatası!"
+        }
+    
     def preprocess_text(self, text: str) -> str:
         """Metni ön işleme"""
         # Küçük harfe çevir
@@ -119,6 +148,26 @@ class SmartChatbot:
         if any(word in text for word in math_words):
             return "math"
         
+        # Fıkra
+        joke_words = ['fıkra', 'şaka', 'espri', 'güldür', 'komik', 'joke', 'funny']
+        if any(word in text for word in joke_words):
+            return "jokes"
+        
+        # İlginç bilgiler
+        fact_words = ['bilgi', 'ilginç', 'fact', 'öğren', 'öğret', 'söyle']
+        if any(word in text for word in fact_words):
+            return "facts"
+        
+        # Yardım
+        help_words = ['yardım', 'help', 'ne yapabilirsin', 'komutlar', 'özellikler']
+        if any(word in text for word in help_words):
+            return "help"
+        
+        # Özel öğrenilen yanıtları kontrol et
+        for key in self.custom_responses:
+            if key.lower() in text:
+                return "custom"
+        
         return "unknown"
     
     def get_response(self, intent: str, user_input: str = "") -> str:
@@ -141,7 +190,19 @@ class SmartChatbot:
             return f"Şu anki saat: {current_time}\nTarih: {current_date}"
         
         elif intent == "math":
-            return "Matematik işlemleri için size yardımcı olabilirim! Hangi işlemi yapmak istiyorsunuz?"
+            return self.handle_math_operation(user_input)
+        
+        elif intent == "jokes":
+            return random.choice(self.knowledge_base["jokes"])
+        
+        elif intent == "facts":
+            return random.choice(self.knowledge_base["facts"])
+        
+        elif intent == "help":
+            return random.choice(self.knowledge_base["help"])
+        
+        elif intent == "custom":
+            return self.get_custom_response(user_input)
         
         else:
             return random.choice(self.knowledge_base["unknown"])
@@ -154,6 +215,53 @@ class SmartChatbot:
                 'feedback': user_feedback,
                 'timestamp': datetime.now().isoformat()
             })
+    
+    def teach_new_response(self, trigger: str, response: str):
+        """Yeni yanıt öğret"""
+        self.custom_responses[trigger.lower()] = response
+        self.learning_history.append({
+            'input': f"Öğretme: {trigger}",
+            'feedback': f"Yeni yanıt: {response}",
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    def get_custom_response(self, user_input: str) -> str:
+        """Özel öğrenilen yanıtları döndür"""
+        for trigger, response in self.custom_responses.items():
+            if trigger in user_input.lower():
+                return response
+        return "Bu konuda henüz bir şey öğrenmedim."
+    
+    def handle_math_operation(self, user_input: str) -> str:
+        """Matematik işlemlerini yap"""
+        try:
+            # Sayıları ve operatörleri bul
+            import re
+            numbers = re.findall(r'\d+', user_input)
+            if len(numbers) >= 2:
+                num1, num2 = int(numbers[0]), int(numbers[1])
+                
+                # Operatörü bul
+                if any(op in user_input for op in ['topla', '+', 'plus']):
+                    result = self.math_operations['topla'](num1, num2)
+                    return f"{num1} + {num2} = {result}"
+                elif any(op in user_input for op in ['çıkar', '-', 'minus']):
+                    result = self.math_operations['çıkar'](num1, num2)
+                    return f"{num1} - {num2} = {result}"
+                elif any(op in user_input for op in ['çarp', '*', 'multiply']):
+                    result = self.math_operations['çarp'](num1, num2)
+                    return f"{num1} × {num2} = {result}"
+                elif any(op in user_input for op in ['böl', '/', 'divide']):
+                    result = self.math_operations['böl'](num1, num2)
+                    if isinstance(result, str):
+                        return result
+                    return f"{num1} ÷ {num2} = {result}"
+                else:
+                    return f"Sayılar: {num1}, {num2}. Hangi işlemi yapmak istiyorsunuz? (topla, çıkar, çarp, böl)"
+            else:
+                return "Matematik işlemi için en az 2 sayı gerekli. Örnek: '5 ve 3 topla'"
+        except Exception as e:
+            return f"Matematik işlemi yapılırken hata oluştu: {str(e)}"
     
     def chat(self, user_input: str) -> str:
         """Ana sohbet fonksiyonu"""
@@ -198,7 +306,8 @@ class SmartChatbot:
             "knowledge_base": self.knowledge_base,
             "learning_history": self.learning_history,
             "user_preferences": self.user_preferences,
-            "conversation_history": self.conversation_history
+            "conversation_history": self.conversation_history,
+            "custom_responses": self.custom_responses
         }
         
         with open(filename, 'w', encoding='utf-8') as f:
@@ -214,6 +323,7 @@ class SmartChatbot:
             self.learning_history = data.get("learning_history", [])
             self.user_preferences = data.get("user_preferences", {})
             self.conversation_history = data.get("conversation_history", [])
+            self.custom_responses = data.get("custom_responses", {})
             
         except FileNotFoundError:
             print("Bilgi dosyası bulunamadı. Yeni bir tane oluşturulacak.")
